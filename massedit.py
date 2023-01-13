@@ -595,6 +595,7 @@ def edit_files(
         editor.set_executables(executables)
 
     processed_paths = []
+    new_python = sys.version_info >= (2, 7)
     for path in get_paths(patterns, start_dirs=start_dirs, max_depth=max_depth):
         try:
             diffs = list(editor.edit_file(path))
@@ -608,8 +609,13 @@ def edit_files(
                 # to bytes and back to silence any conversion errors.
                 encoding = output.encoding
                 if encoding:
-                    bytes_diff = diff.encode(encoding=encoding, errors="ignore")
-                    diff = bytes_diff.decode(encoding=output.encoding)
+                    if new_python:
+                        # Keyword arguments added since 2.7
+                        bytes_diff = diff.encode(encoding=encoding, errors="ignore")
+                        diff = bytes_diff.decode(encoding=output.encoding)
+                    else:
+                        bytes_diff = diff.encode(encoding, "ignore")
+                        diff = bytes_diff.decode(output.encoding)
                 output.write(diff)
         except UnicodeDecodeError as err:
             log.error("failed to process %s: %s", path, err)
